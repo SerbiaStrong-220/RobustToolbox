@@ -27,7 +27,7 @@ jobs:
       - name: Check out engine version
         run: |
           cd RobustToolbox
-          git remote add ss220 https://github.com/SerbiaStrong-220/space-station-14.git
+          git remote add ss220 https://github.com/SerbiaStrong-220/RobustToolbox.git
           git fetch ss220 ${{ github.sha }}
           git checkout FETCH_HEAD
           git submodule update --init --recursive
