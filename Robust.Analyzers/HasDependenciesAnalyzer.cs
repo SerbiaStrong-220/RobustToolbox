@@ -17,7 +17,7 @@ public sealed class HasDependenciesAnalyzer : DiagnosticAnalyzer
         "Type has dependencies but is not partial",
         "Type '{0}' has [Dependency] fields but is not partial. This will be required in the future.",
         "Usage",
-        DiagnosticSeverity.Warning,
+        DiagnosticSeverity.Info, // TODO SS220-remove-when-all-builds-ready
         true);
 
     public static readonly DiagnosticDescriptor DiagnosticNotPartialParent = new(
@@ -25,7 +25,7 @@ public sealed class HasDependenciesAnalyzer : DiagnosticAnalyzer
         "Type has dependencies but is not in a partial type",
         "Type '{0}' has [Dependency] fields but is nested in a non-partial type. The parent being partial will be required in the future.",
         "Usage",
-        DiagnosticSeverity.Warning,
+        DiagnosticSeverity.Info, // TODO SS220-remove-when-all-builds-ready
         true);
 
     public static readonly DiagnosticDescriptor DiagnosticReadOnly = new(
@@ -33,7 +33,7 @@ public sealed class HasDependenciesAnalyzer : DiagnosticAnalyzer
         "Dependency field is readonly",
         "Field '{0}' is a [Dependency] but is readonly. This will be an error in the future.",
         "Usage",
-        DiagnosticSeverity.Warning,
+        DiagnosticSeverity.Info, // TODO SS220-remove-when-all-builds-ready
         true);
 
     public static readonly DiagnosticDescriptor DiagnosticPropertyField = new(
@@ -41,7 +41,7 @@ public sealed class HasDependenciesAnalyzer : DiagnosticAnalyzer
         "Property backing fields cannot be a dependency",
         "Property '{0}' has a backing field marked with [Dependency]. This will be an error in the future.",
         "Usage",
-        DiagnosticSeverity.Warning,
+        DiagnosticSeverity.Info, // TODO SS220-remove-when-all-builds-ready
         true);
 
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics =>

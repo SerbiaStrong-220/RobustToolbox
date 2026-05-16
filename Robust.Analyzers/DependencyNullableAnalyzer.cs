@@ -16,7 +16,7 @@ public sealed class DependencyNullableAnalyzer : DiagnosticAnalyzer
         "Dependencies should not be nullable types",
         "[Dependency] field '{0}' is a nullable type. This has no effect and will be disallowed in the future.",
         "Usage",
-        DiagnosticSeverity.Warning,
+        DiagnosticSeverity.Info, // TODO SS220-remove-when-all-builds-ready
         true);
 
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => [Rule];
