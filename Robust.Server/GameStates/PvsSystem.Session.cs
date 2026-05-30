@@ -81,13 +81,18 @@ internal sealed partial class PvsSystem
 
         if (_maxEntityStates > 0 && session.States.Count > _maxEntityStates)
         {
+            // SS220 - I cant understand why it is here, so let it fire error not in debug
+#if DEBUG
             Log.Warning(
-                "Skipping PVS state for {0} due to exceeding net.pvs_max_entity_states. Count={1} Limit={2}",
+#else
+            Log.Error(
+#endif
+                "Caught PVS state for {0} due to exceeding net.pvs_max_entity_states. Count={1} Limit={2}",
                 session.Session,
                 session.States.Count,
                 _maxEntityStates);
 
-            return false;
+            // return false;
         }
 
         DebugTools.Assert(session.States.Select(x=> x.NetEntity).ToHashSet().Count == session.States.Count);
