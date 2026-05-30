@@ -96,6 +96,8 @@ public abstract partial class SharedPhysicsSystem
 
     private readonly LinkedList<Contact> _activeContacts = new();
 
+    private Entity<PhysicsComponent, TransformComponent>[] _awakeBodiesScratch = Array.Empty<Entity<PhysicsComponent, TransformComponent>>(); // SS220
+
     private Contact[] _contactsScratch = Array.Empty<Contact>();
     private ContactStatus[] _contactStatusScratch = Array.Empty<ContactStatus>();
     private FixedArray4<Vector2>[] _contactWorldPointsScratch = Array.Empty<FixedArray4<Vector2>>();
@@ -422,12 +424,23 @@ public abstract partial class SharedPhysicsSystem
         var contacts = _contactsScratch;
         var index = 0;
 
+        // SS220-physics-edit-begin
+        // prepare awake bodies scratch
+        var awakeCount = AwakeBodies.Count;
+        if (_awakeBodiesScratch.Length < awakeCount)
+            Array.Resize(ref _awakeBodiesScratch, GrowScratch(_awakeBodiesScratch.Length, awakeCount));
+
+        AwakeBodies.CopyTo(_awakeBodiesScratch);
+        // SS220-physics-edit-end
+
+        // SS220 edit: now it can be changed and we will process it next frame
         // Can be changed while enumerating
         // TODO: check for null instead?
         // Work out which contacts are still valid before we decide to update manifolds.
         // We only iterate through awake bodies since any contact that matters must be attached to at least one awake body.
-        foreach (var ent in AwakeBodies)
+        for (var i = 0; i < awakeCount; i++)
         {
+            var ent = _awakeBodiesScratch[i];
             var entUid = ent.Owner;
             var entBody = ent.Comp1;
             var node = entBody.Contacts.First;
@@ -436,6 +449,12 @@ public abstract partial class SharedPhysicsSystem
             {
                 var contact = node.Value;
                 node = node.Next;
+
+                if (!contact.Enabled)
+                    return;
+
+                DebugTools.Assert(contact.BodyA is not null);
+                DebugTools.Assert(contact.BodyB is not null);
 
                 var bodyA = contact.BodyA!;
                 var bodyB = contact.BodyB!;
@@ -451,10 +470,6 @@ public abstract partial class SharedPhysicsSystem
                     if (entUid != contact.EntityA)
                         continue;
                 }
-
-                // It's possible the contact was destroyed by content in which case we just skip it.
-                if (!contact.Enabled)
-                    continue;
 
                 // No longer pre-init and can be used in the solver.
                 contact.Flags &= ~ContactFlags.PreInit;

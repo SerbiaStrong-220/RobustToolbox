@@ -15,9 +15,9 @@ namespace Robust.Shared.Serialization
 {
     internal abstract partial class RobustSerializer : IRobustSerializerInternal
     {
-        [Dependency] private readonly IReflectionManager _reflectionManager = default!;
-        [Dependency] protected readonly IRobustMappedStringSerializer MappedStringSerializer = default!;
-        [Dependency] private readonly ILogManager _logManager = default!;
+        [Dependency] private IReflectionManager _reflectionManager = default!;
+        [Dependency] protected IRobustMappedStringSerializer MappedStringSerializer = default!;
+        [Dependency] private ILogManager _logManager = default!;
 
         private readonly Dictionary<Type, Dictionary<string, Type?>> _cachedSerialized = new();
 
@@ -211,7 +211,8 @@ namespace Robust.Shared.Serialization
             assigned[serializedTypeName] = null;
             return null;
         }
-
+// SS220-remove-stats-in-prod-begin
+#if DEBUG
         private static long StartMeasureStats(Stream stream)
         {
             return stream.CanSeek ? stream.Position : 0;
@@ -258,5 +259,21 @@ namespace Robust.Shared.Serialization
                 }
             }
         }
+#else
+        private static long StartMeasureStats(Stream _)
+        {
+            return 0;
+        }
+
+        private void EndMeasureSerialize(Stream _, long _1, Type _2)
+        {
+        }
+
+        private void EndMeasureDeserialize(Stream _, long _1, Type _2)
+        {
+        }
+#endif
+
+// SS220-remove-stats-in-prod-begin
     }
 }

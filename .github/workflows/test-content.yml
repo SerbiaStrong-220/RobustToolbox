@@ -27,7 +27,8 @@ jobs:
       - name: Check out engine version
         run: |
           cd RobustToolbox
-          git fetch origin ${{ github.sha }}
+          git remote add ss220 https://github.com/SerbiaStrong-220/RobustToolbox.git
+          git fetch ss220 ${{ github.sha }}
           git checkout FETCH_HEAD
           git submodule update --init --recursive
       - name: Replace global.json
@@ -35,8 +36,19 @@ jobs:
       - name: Install dependencies
         run: dotnet restore
       - name: Build
-        run: dotnet build --configuration Tools --no-restore
+        run: dotnet build --configuration DebugOpt --no-restore /m
       - name: Content.Tests
-        run: dotnet test --no-build Content.Tests/Content.Tests.csproj -v n
+        shell: pwsh
+        run: dotnet test --no-build --configuration DebugOpt Content.Tests/Content.Tests.csproj -- NUnit.ConsoleOut=0 NUnit.TestOutputXml="$(pwd)/test_results"
       - name: Content.IntegrationTests
-        run: COMPlus_gcServer=1 dotnet test --no-build Content.IntegrationTests/Content.IntegrationTests.csproj -v n
+        shell: pwsh
+        run: |
+          $env:DOTNET_gcServer=1
+          dotnet test --no-build --configuration DebugOpt Content.IntegrationTests/Content.IntegrationTests.csproj -- NUnit.ConsoleOut=0 NUnit.MapWarningTo=Failed NUnit.TestOutputXml="logs" NUnit.WorkDirectory="$(pwd)/test_results"
+      - name: Archive NUnit3 test results.
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nunit3-results
+          path: test_results/*
+          retention-days: 7

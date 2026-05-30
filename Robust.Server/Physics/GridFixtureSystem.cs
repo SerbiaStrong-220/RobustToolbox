@@ -27,14 +27,15 @@ namespace Robust.Server.Physics
     /// </summary>
     public sealed partial class GridFixtureSystem : SharedGridFixtureSystem
     {
-        [Dependency] private readonly IMapManager _mapManager = default!;
-        [Dependency] private readonly IConfigurationManager _cfg = default!;
-        [Dependency] private readonly IConGroupController _conGroup = default!;
-        [Dependency] private readonly EntityLookupSystem _lookup = default!;
-        [Dependency] private readonly SharedMapSystem _maps = default!;
-        [Dependency] private readonly IPlayerManager _playerManager = default!;
-        [Dependency] private readonly SharedPhysicsSystem _physics = default!;
-        [Dependency] private readonly SharedTransformSystem _xformSystem = default!;
+        [Dependency] private IMapManager _mapManager = default!;
+        [Dependency] private IConfigurationManager _cfg = default!;
+        [Dependency] private IConGroupController _conGroup = default!;
+        [Dependency] private EntityLookupSystem _lookup = default!;
+        [Dependency] private SharedMapSystem _maps = default!;
+        [Dependency] private SharedPhysicsSystem _physics = default!;
+        [Dependency] private SharedTransformSystem _xformSystem = default!;
+        [Dependency] private IPlayerManager _playerManager = default!; // SS220
+
 
         private readonly Dictionary<EntityUid, Dictionary<Vector2i, ChunkNodeGroup>> _nodes = new();
 
@@ -68,7 +69,7 @@ namespace Robust.Server.Physics
             SubscribeNetworkEvent<StopGridNodesMessage>(OnDebugStopRequest);
 
             Subs.CVar(_cfg, CVars.GridSplitting, SetSplitAllowed, true);
-            _playerManager.PlayerStatusChanged += OnPlayerStatusChanged;
+            _playerManager.PlayerStatusChanged += OnPlayerStatusChanged; // SS220
         }
 
         private void SetSplitAllowed(bool value) => SplitAllowed = value;
@@ -76,15 +77,17 @@ namespace Robust.Server.Physics
         public override void Shutdown()
         {
             base.Shutdown();
-            _playerManager.PlayerStatusChanged -= OnPlayerStatusChanged;
-            _subscribedSessions.Clear();
+            _playerManager.PlayerStatusChanged -= OnPlayerStatusChanged; // SS220
+            _subscribedSessions.Clear(); // SS220
         }
 
+        // SS220-begin
         private void OnPlayerStatusChanged(object? sender, SessionStatusEventArgs args)
         {
             if (args.NewStatus == SessionStatus.Disconnected)
                 _subscribedSessions.Remove(args.Session);
         }
+        // SS220-end
 
         /// <summary>
         /// Due to how MapLoader works need to ensure grid exists in dictionary before it's initialised.
