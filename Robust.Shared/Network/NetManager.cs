@@ -849,9 +849,13 @@ namespace Robust.Shared.Network
 
             try
             {
-                await Task.WhenAll(
-                    _serializer.Handshake(channel),
-                    _transfer.ServerHandshake(channel));
+                // SS220-Start: Add OnInitialHandshakeComplete after channel is set up and NetManager can serialize content messages
+                await _serializer.Handshake(channel);
+
+                await OnInitialHandshakeComplete(channel);
+
+                await _transfer.ServerHandshake(channel);
+                // SS220-End
             }
             catch (TaskCanceledException)
             {
@@ -862,6 +866,25 @@ namespace Robust.Shared.Network
             _logger.Info("{ConnectionEndpoint}: Connected", channel.RemoteEndPoint);
 
             OnConnected(channel);
+        }
+
+        /// <summary>
+        /// SS220: Hack to correctly handle new channel data if it was changed after initial setup
+        /// </summary>
+        /// <param name="netChannel"></param>
+        /// <param name="newData"></param>
+        /// <exception cref="Exception"></exception> <summary>
+        public void ReSetupChannel(INetChannel netChannel, NetUserData newData)
+        {
+            if (netChannel is not NetChannel channel)
+                throw new Exception("NetManager got INetChannel not belonging to it");
+
+            _assignedUserIds.Remove(netChannel.UserId);
+            _assignedUsernames.Remove(netChannel.UserName);
+
+            channel.UserData = newData;
+            _assignedUserIds.Add(channel.UserId, channel.Connection);
+            _assignedUsernames.Add(channel.UserName, channel.Connection);
         }
 
         private void HandleDisconnect(NetPeerData peer, NetConnection connection, string reason)
@@ -1200,6 +1223,18 @@ namespace Robust.Shared.Network
             return args;
         }
 
+        /// <summary>
+        /// SS220: Handshake complete event before handling OnConnected
+        /// </summary>
+        private async Task OnInitialHandshakeComplete(NetChannel channel)
+        {
+            var args = new NetChannelArgs(channel);
+            foreach (var conn in _initialHandshakeCompleteEvent)
+            {
+                await conn(args);
+            }
+        }
+
         private void OnConnectFailed(string reason)
         {
             var args = new NetConnectFailArgs(reason);
@@ -1221,11 +1256,23 @@ namespace Robust.Shared.Network
         private readonly List<Func<NetConnectingArgs, Task>> _connectingEvent
             = new();
 
+        private readonly List<Func<NetChannelArgs, Task>> _initialHandshakeCompleteEvent
+            = new(); // SS220
+
         /// <inheritdoc />
         public event Func<NetConnectingArgs, Task> Connecting
         {
             add => _connectingEvent.Add(value);
             remove => _connectingEvent.Remove(value);
+        }
+
+        /// <summary>
+        /// SS220: Handshake complete event before handling OnConnected
+        /// </summary>
+        public event Func<NetChannelArgs, Task> InitialHandshakeComplete
+        {
+            add => _initialHandshakeCompleteEvent.Add(value);
+            remove => _initialHandshakeCompleteEvent.Remove(value);
         }
 
         /// <inheritdoc />

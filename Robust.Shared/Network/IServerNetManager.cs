@@ -22,5 +22,17 @@ namespace Robust.Shared.Network
         /// <param name="channel">NetChannel to disconnect.</param>
         /// <param name="reason">Reason why it was disconnected.</param>
         void DisconnectChannel(INetChannel channel, string reason);
+
+        /// <summary>
+        /// SS220: Handshake complete event before handling OnConnected
+        /// </summary>
+        event Func<NetChannelArgs, Task> InitialHandshakeComplete;
+
+        /// <summary>
+        /// SS220: Hack to correctly handle new channel data if it was changed after initial setup
+        /// </summary>
+        /// <param name="netChannel"></param>
+        /// <param name="newData"></param>
+        void ReSetupChannel(INetChannel netChannel, NetUserData newData);
     }
 }

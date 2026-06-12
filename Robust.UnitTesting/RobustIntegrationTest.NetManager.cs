@@ -353,6 +353,7 @@ namespace Robust.UnitTesting
             }
 
             public event EventHandler<NetConnectFailArgs>? ConnectFailed;
+            public event Func<NetChannelArgs, Task>? InitialHandshakeComplete; // SS220
 
             public void ClientConnect(string host, int port, string userNameRequest)
             {
@@ -429,6 +430,11 @@ namespace Robust.UnitTesting
 
                 ArrayPool<byte>.Shared.Return(buffer);
                 return netMessage;
+            }
+
+            public void ReSetupChannel(INetChannel netChannel, NetUserData newData) // SS220
+            {
+                throw new NotImplementedException();
             }
 
             private sealed class IntegrationNetChannel : INetChannel
