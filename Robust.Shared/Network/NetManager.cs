@@ -838,8 +838,7 @@ namespace Robust.Shared.Network
             _logger.Verbose($"{sender.RemoteEndPoint}: Initial handshake complete!");
 
             var channel = new NetChannel(this, sender, userData, loginType);
-            _assignedUserIds.Add(userData.UserId, sender);
-            _assignedUsernames.Add(userData.UserName, sender);
+            // SS220: Moved _assignedUserIds and _assignedUsernames after try/catch block
             _channels.Add(sender, channel);
             peer.AddChannel(channel);
             channel.Encryption = encryption;
@@ -854,12 +853,24 @@ namespace Robust.Shared.Network
 
                 await OnInitialHandshakeComplete(channel);
 
+                // SS220-Start: ServerTransferManager caches UserId for internal use
+                // so it'll be better if we'll not change UserId after TransferManager caches it
+                _assignedUserIds.Add(userData.UserId, sender);
+                _assignedUsernames.Add(userData.UserName, sender);
+                // SS220-End
+
                 await _transfer.ServerHandshake(channel);
                 // SS220-End
             }
             catch (TaskCanceledException)
             {
                 // Client disconnected during handshake.
+                // SS220-Start: User may disconnect during long handshake of transfer manager
+                if (_assignedUserIds.ContainsKey(userData.UserId))
+                    _assignedUserIds.Remove(userData.UserId);
+                if (_assignedUsernames.ContainsKey(userData.UserName))
+                    _assignedUsernames.Remove(userData.UserName);
+                // SS220-End
                 return;
             }
 
@@ -869,7 +880,7 @@ namespace Robust.Shared.Network
         }
 
         /// <summary>
-        /// SS220: Hack to correctly handle new channel data if it was changed after initial setup
+        /// SS220: Hack to update new channel data if it was changed after initial setup
         /// </summary>
         /// <param name="netChannel"></param>
         /// <param name="newData"></param>
@@ -879,12 +890,7 @@ namespace Robust.Shared.Network
             if (netChannel is not NetChannel channel)
                 throw new Exception("NetManager got INetChannel not belonging to it");
 
-            _assignedUserIds.Remove(netChannel.UserId);
-            _assignedUsernames.Remove(netChannel.UserName);
-
             channel.UserData = newData;
-            _assignedUserIds.Add(channel.UserId, channel.Connection);
-            _assignedUsernames.Add(channel.UserName, channel.Connection);
         }
 
         private void HandleDisconnect(NetPeerData peer, NetConnection connection, string reason)
