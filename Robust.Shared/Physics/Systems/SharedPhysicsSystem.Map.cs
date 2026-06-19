@@ -9,6 +9,8 @@ public partial class SharedPhysicsSystem
 {
     #region AddRemove
 
+    private readonly System.Threading.Lock _awakeBodiesLock = new(); // SS220 make awake bodies thread safe
+
     internal void AddAwakeBody(Entity<PhysicsComponent, TransformComponent> ent)
     {
         var body = ent.Comp1;
@@ -28,15 +30,25 @@ public partial class SharedPhysicsSystem
         }
 
         DebugTools.Assert(body.Awake);
-        DebugTools.Assert(!AwakeBodies.Contains(ent));
-        AwakeBodies.Add(ent);
+        // SS220-make-awake-bodies-thread-safe-begin
+        lock (_awakeBodiesLock)
+        {
+            DebugTools.Assert(!AwakeBodies.Contains(ent));
+            AwakeBodies.Add(ent);
+        }
+        // SS220-make-awake-body-thread-safe-end
     }
 
     internal void RemoveSleepBody(Entity<PhysicsComponent, TransformComponent> ent)
     {
         DebugTools.Assert(!ent.Comp1.Awake);
-        DebugTools.Assert(AwakeBodies.Contains(ent));
-        AwakeBodies.Remove(ent);
+        // SS220-make-awake-bodies-thread-safe-begin
+        lock (_awakeBodiesLock)
+        {
+            DebugTools.Assert(AwakeBodies.Contains(ent));
+            AwakeBodies.Remove(ent);
+        }
+        // SS220-make-awake-body-thread-safe-end
     }
 
 
