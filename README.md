@@ -29,7 +29,7 @@ This fork isn't supposed to be used for projects not related to SS220, but we al
 
 ## Contributing
 
-We recommend you to contribute to the (original repository)[https://github.com/space-wizards/RobustToolbox] instead of creating PRs for us.
+We recommend you to contribute to the [original repository](https://github.com/space-wizards/RobustToolbox) instead of creating PRs for us.
 
 But if you really want to work with us we recommend you to achive us in Discord first or at least create a Github issue (but we dont check them often).
 
