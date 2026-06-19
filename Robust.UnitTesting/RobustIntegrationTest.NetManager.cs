@@ -365,7 +365,6 @@ namespace Robust.UnitTesting
             }
 
             public event EventHandler<NetConnectFailArgs>? ConnectFailed;
-            public event Func<NetChannelArgs, Task>? InitialHandshakeComplete; // SS220
 
             // SS220-Start
             private readonly List<Func<NetChannelArgs, Task>> _initialHandshakeCompleteEvent = new();
