@@ -33,6 +33,6 @@ namespace Robust.Shared.Network
         /// </summary>
         /// <param name="netChannel"></param>
         /// <param name="newData"></param>
-        void ReSetupChannel(INetChannel netChannel, NetUserData newData);
+        void ReSetupChannel(INetChannel netChannel, NetUserData newData, LoginType type);
     }
 }

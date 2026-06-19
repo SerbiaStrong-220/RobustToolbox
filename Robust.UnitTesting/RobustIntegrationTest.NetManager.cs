@@ -153,6 +153,7 @@ namespace Robust.UnitTesting
                                     userData,
                                     connect.Uid);
                                 _channels.Add(uid, channel);
+                                await OnInitialHandshakeComplete(channel); // SS220
                                 Connected?.Invoke(this, new NetChannelArgs(channel));
                             }
 
@@ -244,6 +245,17 @@ namespace Robust.UnitTesting
 
                 return args;
             }
+
+            // SS220-Start
+            private async Task OnInitialHandshakeComplete(INetChannel channel)
+            {
+                var args = new NetChannelArgs(channel);
+                foreach (var conn in _initialHandshakeCompleteEvent)
+                {
+                    await conn(args);
+                }
+            }
+            // SS220-End
 
             public void ServerSendToAll(NetMessage message)
             {
@@ -353,7 +365,15 @@ namespace Robust.UnitTesting
             }
 
             public event EventHandler<NetConnectFailArgs>? ConnectFailed;
-            public event Func<NetChannelArgs, Task>? InitialHandshakeComplete; // SS220
+
+            // SS220-Start
+            private readonly List<Func<NetChannelArgs, Task>> _initialHandshakeCompleteEvent = new();
+            public event Func<NetChannelArgs, Task> InitialHandshakeComplete
+            {
+                add => _initialHandshakeCompleteEvent.Add(value);
+                remove => _initialHandshakeCompleteEvent.Remove(value);
+            }
+            // SS220-End
 
             public void ClientConnect(string host, int port, string userNameRequest)
             {
@@ -432,7 +452,7 @@ namespace Robust.UnitTesting
                 return netMessage;
             }
 
-            public void ReSetupChannel(INetChannel netChannel, NetUserData newData) // SS220
+            public void ReSetupChannel(INetChannel netChannel, NetUserData newData, LoginType authType) // SS220
             {
                 throw new NotImplementedException();
             }

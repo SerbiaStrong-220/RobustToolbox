@@ -24,7 +24,7 @@ namespace Robust.Shared.Network
             public INetManager NetPeer => _manager;
 
             [ViewVariables] public string UserName => UserData.UserName;
-            [ViewVariables] public LoginType AuthType { get; }
+            [ViewVariables] public LoginType AuthType { get; set; } // SS220
             [ViewVariables] public TimeSpan RemoteTimeOffset => TimeSpan.FromSeconds(_connection.RemoteTimeOffset);
             [ViewVariables] public TimeSpan RemoteTime => _manager._timing.RealTime + RemoteTimeOffset;
 
