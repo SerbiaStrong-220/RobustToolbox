@@ -1382,6 +1382,9 @@ namespace Robust.Shared
         public static readonly CVarDef<bool> SleepAllowed =
             CVarDef.Create("physics.sleepallowed", true);
 
+        public static readonly CVarDef<bool> DebugSIMDEnabled =
+            CVarDef.Create("physics.simd", true, CVar.ARCHIVE | CVar.REPLICATED);
+
         // Box2D default is 0.5f
         public static readonly CVarDef<float> TimeToSleep =
             CVarDef.Create("physics.timetosleep", 0.2f);

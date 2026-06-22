@@ -1,0 +1,80 @@
+/*
+* Farseer Physics Engine:
+* Copyright (c) 2012 Ian Qvist
+*
+* Original source Box2D:
+* Copyright (c) 2006-2011 Erin Catto http://www.box2d.org
+*
+* This software is provided 'as-is', without any express or implied
+* warranty.  In no event will the authors be held liable for any damages
+* arising from the use of this software.
+* Permission is granted to anyone to use this software for any purpose,
+* including commercial applications, and to alter it and redistribute it
+* freely, subject to the following restrictions:
+* 1. The origin of this software must not be misrepresented; you must not
+* claim that you wrote the original software. If you use this software
+* in a product, an acknowledgment in the product documentation would be
+* appreciated but is not required.
+* 2. Altered source versions must be plainly marked as such, and must not be
+* misrepresented as being the original software.
+* 3. This notice may not be removed or altered from any source distribution.
+*/
+// SS220: This file isn't original but is based on ContactVelocityConstraint.cs but with arrays for SoA processing.
+
+using System.Numerics;
+using Robust.Shared.Utility;
+
+namespace Robust.Shared.Physics.Dynamics.Contacts
+{
+    /// <summary>
+    /// Based on ContactVelocityConstraint but with arrays for SoA processing.
+    /// <see cref="ContactVelocityConstraint"/>
+    /// </summary>
+    internal struct ContactVelocityConstraintSoA
+    {
+        public int[] ContactIndex;
+
+        /// <summary>
+        ///     Index of BodyA in the island.
+        /// </summary>
+        public int[] IndexA;
+
+        /// <summary>
+        ///     Index of BodyB in the island.
+        /// </summary>
+        public int[] IndexB;
+
+        public Vector2[] Normal;
+
+        public Vector4[] NormalMass;
+
+        public Vector4[] K;
+
+        public float[] InvMassA;
+        public float[] InvMassB;
+
+        public float[] InvIA;
+        public float[] InvIB;
+
+        public float[] Friction;
+
+        public float[] Restitution;
+
+        public float[] TangentSpeed;
+
+        public float[] TangentX;
+        public float[] TangentY;
+
+        public int[] PointCount;
+
+        // Use 2 as its the max number of manifold points.
+        // Points
+        public FixedArray2<Vector2>[] PointRelativeVelocityA;
+        public FixedArray2<Vector2>[] PointRelativeVelocityB;
+        public FixedArray2<float>[] PointNormalImpulse;
+        public FixedArray2<float>[] PointTangentImpulse;
+        public FixedArray2<float>[] PointNormalMass;
+        public FixedArray2<float>[] PointTangentMass;
+        public FixedArray2<float>[] PointVelocityBias;
+    }
+}
