@@ -22,7 +22,7 @@ namespace Robust.Server.GameStates
         private HashSet<EntityUid>[] _addEntities = new HashSet<EntityUid>[DirtyBufferSize];
         private HashSet<EntityUid>[] _dirtyEntities = new HashSet<EntityUid>[DirtyBufferSize];
         private int _currentIndex = 1;
-        private readonly object _dirtyLock = new(); // SS220-ThreadSafety
+        private readonly System.Threading.Lock _dirtyLock = new(); // SS220-ThreadSafety
 
         private void InitializeDirty()
         {
