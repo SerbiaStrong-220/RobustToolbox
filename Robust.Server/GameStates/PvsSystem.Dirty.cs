@@ -22,6 +22,7 @@ namespace Robust.Server.GameStates
         private HashSet<EntityUid>[] _addEntities = new HashSet<EntityUid>[DirtyBufferSize];
         private HashSet<EntityUid>[] _dirtyEntities = new HashSet<EntityUid>[DirtyBufferSize];
         private int _currentIndex = 1;
+        private readonly object[] _dirtyLocks = new object[DirtyBufferSize]; // SS220-ThreadSafety
 
         private void InitializeDirty()
         {
@@ -29,6 +30,7 @@ namespace Robust.Server.GameStates
             {
                 _addEntities[i] = new HashSet<EntityUid>(32);
                 _dirtyEntities[i] = new HashSet<EntityUid>(32);
+                _dirtyLocks[i] = new object(); // SS220-ThreadSafety
             }
             EntityManager.EntityAdded += OnEntityAdd;
             EntityManager.EntityDirtied += OnEntityDirty;
@@ -44,7 +46,14 @@ namespace Robust.Server.GameStates
         {
             DebugTools.Assert(_currentIndex == _gameTiming.CurTick.Value % DirtyBufferSize ||
                 _gameTiming.GetType().Name == "IGameTimingProxy");// Look I have NFI how best to excuse this assert if the game timing isn't real (a Mock<IGameTiming>).
-            _addEntities[_currentIndex].Add(e);
+
+            // SS220-ThreadSafety-Start
+            var idx = _currentIndex;
+            lock (_dirtyLocks[idx])
+            {
+                _addEntities[idx].Add(e);
+            }
+            // SS220-ThreadSafety-End
         }
 
         private void OnEntityDirty(Entity<MetaDataComponent> uid)
@@ -55,8 +64,14 @@ namespace Robust.Server.GameStates
                 meta.LastModifiedTick = uid.Comp.EntityLastModifiedTick;
             }
 
-            if (!_addEntities[_currentIndex].Contains(uid))
-                _dirtyEntities[_currentIndex].Add(uid);
+            // SS220-ThreadSafety-Start
+            var idx = _currentIndex;
+            lock (_dirtyLocks[idx])
+            {
+                if (!_addEntities[idx].Contains(uid))
+                    _dirtyEntities[idx].Add(uid);
+            }
+            // SS220-ThreadSafety-End
         }
 
         private bool TryGetDirtyEntities(GameTick tick, [NotNullWhen(true)] out HashSet<EntityUid>? addEntities, [NotNullWhen(true)] out HashSet<EntityUid>? dirtyEntities)
@@ -70,8 +85,13 @@ namespace Robust.Server.GameStates
             }
 
             var index = tick.Value % DirtyBufferSize;
-            addEntities = _addEntities[index];
-            dirtyEntities = _dirtyEntities[index];
+            // SS220-ThreadSafety-Start
+            lock (_dirtyLocks[index])
+            {
+                addEntities = _addEntities[index];
+                dirtyEntities = _dirtyEntities[index];
+            }
+            // SS220-ThreadSafety-End
             return true;
         }
 
@@ -87,9 +107,17 @@ namespace Robust.Server.GameStates
                 }
             }
 
-            _currentIndex = ((int)_gameTiming.CurTick.Value + 1) % DirtyBufferSize;
-            _addEntities[_currentIndex].Clear();
-            _dirtyEntities[_currentIndex].Clear();
+            // SS220-ThreadSafety-Start
+            var newIdx = ((int)_gameTiming.CurTick.Value + 1) % DirtyBufferSize;
+
+            lock (_dirtyLocks[newIdx])
+            {
+                _addEntities[newIdx].Clear();
+                _dirtyEntities[newIdx].Clear();
+            }
+
+            _currentIndex = newIdx;
+            // SS220-ThreadSafety-End
         }
     }
 }
