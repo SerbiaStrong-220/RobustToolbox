@@ -47,11 +47,8 @@ namespace Robust.Server.GameStates
                 _gameTiming.GetType().Name == "IGameTimingProxy");// Look I have NFI how best to excuse this assert if the game timing isn't real (a Mock<IGameTiming>).
 
             // SS220-ThreadSafety-Start
-            var idx = _currentIndex;
             lock (_dirtyLock)
-            {
-                _addEntities[idx].Add(e);
-            }
+                _addEntities[_currentIndex].Add(e);
             // SS220-ThreadSafety-End
         }
 
@@ -64,11 +61,10 @@ namespace Robust.Server.GameStates
             }
 
             // SS220-ThreadSafety-Start
-            var idx = _currentIndex;
             lock (_dirtyLock)
             {
-                if (!_addEntities[idx].Contains(uid))
-                    _dirtyEntities[idx].Add(uid);
+                if (!_addEntities[_currentIndex].Contains(uid))
+                    _dirtyEntities[_currentIndex].Add(uid);
             }
             // SS220-ThreadSafety-End
         }
