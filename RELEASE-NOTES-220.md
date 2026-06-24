@@ -4,7 +4,7 @@ Changes to RobustToolbox made by the SS220 team.
 
 <!-- If last documented version if release candidate and you're willing to create another release candidate or even release itself you should be modifying the last block instead of creating a new one  -->
 
-## c1.1.0-rc0
+## c1.1.0-rc1
 
 Available upstream versions: v277.0.0
 
@@ -18,6 +18,7 @@ This is a release candidate version and may differ from the final version.
 ### Other
 
 * Awakening bodies now is thread-safe
+* Calling `Dirty()` in parallel now is thread-safe
 
 ## c1.0.1
 
