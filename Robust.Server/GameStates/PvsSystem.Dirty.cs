@@ -85,13 +85,8 @@ namespace Robust.Server.GameStates
             }
 
             var index = tick.Value % DirtyBufferSize;
-            // SS220-ThreadSafety-Start
-            lock (_dirtyLocks[index])
-            {
-                addEntities = _addEntities[index];
-                dirtyEntities = _dirtyEntities[index];
-            }
-            // SS220-ThreadSafety-End
+            addEntities = _addEntities[index];
+            dirtyEntities = _dirtyEntities[index];
             return true;
         }
 
@@ -107,17 +102,9 @@ namespace Robust.Server.GameStates
                 }
             }
 
-            // SS220-ThreadSafety-Start
-            var newIdx = ((int)_gameTiming.CurTick.Value + 1) % DirtyBufferSize;
-
-            lock (_dirtyLocks[newIdx])
-            {
-                _addEntities[newIdx].Clear();
-                _dirtyEntities[newIdx].Clear();
-            }
-
-            _currentIndex = newIdx;
-            // SS220-ThreadSafety-End
+            _currentIndex = ((int)_gameTiming.CurTick.Value + 1) % DirtyBufferSize;
+            _addEntities[_currentIndex].Clear();
+            _dirtyEntities[_currentIndex].Clear();
         }
     }
 }
