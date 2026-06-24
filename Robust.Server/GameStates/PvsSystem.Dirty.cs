@@ -22,7 +22,7 @@ namespace Robust.Server.GameStates
         private HashSet<EntityUid>[] _addEntities = new HashSet<EntityUid>[DirtyBufferSize];
         private HashSet<EntityUid>[] _dirtyEntities = new HashSet<EntityUid>[DirtyBufferSize];
         private int _currentIndex = 1;
-        private readonly object[] _dirtyLocks = new object[DirtyBufferSize]; // SS220-ThreadSafety
+        private readonly object _dirtyLock = new(); // SS220-ThreadSafety
 
         private void InitializeDirty()
         {
@@ -30,7 +30,6 @@ namespace Robust.Server.GameStates
             {
                 _addEntities[i] = new HashSet<EntityUid>(32);
                 _dirtyEntities[i] = new HashSet<EntityUid>(32);
-                _dirtyLocks[i] = new object(); // SS220-ThreadSafety
             }
             EntityManager.EntityAdded += OnEntityAdd;
             EntityManager.EntityDirtied += OnEntityDirty;
@@ -49,7 +48,7 @@ namespace Robust.Server.GameStates
 
             // SS220-ThreadSafety-Start
             var idx = _currentIndex;
-            lock (_dirtyLocks[idx])
+            lock (_dirtyLock)
             {
                 _addEntities[idx].Add(e);
             }
@@ -66,7 +65,7 @@ namespace Robust.Server.GameStates
 
             // SS220-ThreadSafety-Start
             var idx = _currentIndex;
-            lock (_dirtyLocks[idx])
+            lock (_dirtyLock)
             {
                 if (!_addEntities[idx].Contains(uid))
                     _dirtyEntities[idx].Add(uid);
