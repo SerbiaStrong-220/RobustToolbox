@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Numerics;
 using Robust.Shared.Maths;
 using Robust.Shared.Prototypes;
@@ -72,8 +72,8 @@ namespace Robust.Shared.Map
         bool HasCollision => true;
 
         /// <summary>
-        ///     Optional tile-local vertices used for map-grid collision instead of a full square tile.
-        ///     Coordinates are in the 0..1 tile-local range.
+        ///     Optional tile local vertices used for map grid collision instead of a full square tile.
+        ///     Coordinates are in the 0..1 tile local range.
         /// </summary>
         IReadOnlyList<Vector2>? CollisionVertices => null;
     }
