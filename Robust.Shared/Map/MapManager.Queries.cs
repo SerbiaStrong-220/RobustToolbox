@@ -36,6 +36,37 @@ internal partial class MapManager
                     }
                 }
             }
+
+            if (IsIntersectingNonCollidingTiles(chunk, shape, shapeTransform, gridTransform))
+                return true;
+        }
+
+        return false;
+    }
+
+    private bool IsIntersectingNonCollidingTiles<T>(
+        MapChunk chunk,
+        T shape,
+        Transform shapeTransform,
+        Transform gridTransform) where T : IPhysShape
+    {
+        for (ushort y = 0; y < chunk.ChunkSize; y++)
+        {
+            for (ushort x = 0; x < chunk.ChunkSize; x++)
+            {
+                var tile = chunk.GetTile(x, y);
+
+                if (tile.IsEmpty || _tileMan[tile.TypeId].HasCollision)
+                    continue;
+
+                var tilePos = new Vector2(
+                    chunk.Indices.X * chunk.ChunkSize + x,
+                    chunk.Indices.Y * chunk.ChunkSize + y);
+                var tileShape = new SlimPolygon(new Box2(tilePos, tilePos + Vector2.One));
+
+                if (_manifolds.TestOverlap(shape, 0, tileShape, 0, shapeTransform, gridTransform))
+                    return true;
+            }
         }
 
         return false;

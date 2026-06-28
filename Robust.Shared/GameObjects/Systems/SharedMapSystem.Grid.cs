@@ -634,8 +634,8 @@ public abstract partial class SharedMapSystem
         {
             // Even if the chunk is still removed still need to make sure bounds are updated (for now...)
             // generate collision rectangles for this chunk based on filled tiles.
-            GridChunkPartition.PartitionChunk(mapChunk, out var localBounds, out var rectangles);
-            mapChunk.CachedBounds = localBounds;
+            GridChunkPartition.PartitionChunk(mapChunk, out _, out var rectangles, IsMergedCollisionTile);
+            mapChunk.CachedBounds = GetCollisionBounds(mapChunk);
 
             if (mapChunk.FilledTiles > 0)
                 chunkRectangles.Add(mapChunk, rectangles);
@@ -669,6 +669,36 @@ public abstract partial class SharedMapSystem
         OnGridBoundsChange(uid, grid);
         var ev = new RegenerateGridBoundsEvent(uid, chunkRectangles, removedChunks);
         RaiseLocalEvent(ref ev);
+    }
+
+    private bool IsMergedCollisionTile(Tile tile)
+    {
+        if (tile.IsEmpty)
+            return false;
+
+        var tileDef = _tileMan[tile.TypeId];
+        return tileDef is { HasCollision: true, CollisionVertices: null };
+    }
+
+    private Box2i GetCollisionBounds(MapChunk chunk)
+    {
+        var bounds = new Box2i();
+
+        for (ushort y = 0; y < chunk.ChunkSize; y++)
+        {
+            for (ushort x = 0; x < chunk.ChunkSize; x++)
+            {
+                var tile = chunk.GetTile(x, y);
+
+                if (tile.IsEmpty)
+                    continue;
+
+                var tileBounds = new Box2i(x, y, x + 1, y + 1);
+                bounds = bounds.IsEmpty() ? tileBounds : bounds.Union(tileBounds);
+            }
+        }
+
+        return bounds;
     }
 
     private void RegenerateAabb(MapGridComponent grid)

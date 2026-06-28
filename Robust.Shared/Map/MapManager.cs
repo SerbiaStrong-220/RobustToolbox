@@ -16,6 +16,7 @@ internal partial class MapManager : IMapManagerInternal, IEntityEventSubscriber
     [Dependency] public IGameTiming GameTiming = default!;
     [Dependency] public IEntityManager EntityManager = default!;
     [Dependency] private IManifoldManager _manifolds = default!;
+    [Dependency] private ITileDefinitionManager _tileMan = default!;
     [Dependency] private ILogManager _logManager = default!;
     [Dependency] private IConsoleHost _conhost = default!;
 

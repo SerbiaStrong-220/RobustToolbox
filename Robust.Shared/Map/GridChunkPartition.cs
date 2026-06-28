@@ -15,9 +15,10 @@ namespace Robust.Shared.Map
         /// <param name="chunk"></param>
         /// <param name="bounds">The overall bounds that covers every rectangle.</param>
         /// <param name="rectangles">Each individual rectangle comprising the chunk's bounds</param>
-        public static void PartitionChunk(MapChunk chunk, out Box2i bounds, out List<Box2i> rectangles)
+        public static void PartitionChunk(MapChunk chunk, out Box2i bounds, out List<Box2i> rectangles, Func<Tile, bool>? isFilled = null)
         {
             rectangles = new List<Box2i>();
+            isFilled ??= static tile => !tile.IsEmpty;
 
             // TODO: Use the existing PartitionChunk version because that one is likely faster and you can Span that shit.
             // Convert each line into boxes as long as they can be.
@@ -28,7 +29,7 @@ namespace Robust.Shared.Map
 
                 for (ushort x = 0; x < chunk.ChunkSize; x++)
                 {
-                    if (!chunk.GetTile(x, y).IsEmpty)
+                    if (isFilled(chunk.GetTile(x, y)))
                     {
                         running = true;
                         continue;

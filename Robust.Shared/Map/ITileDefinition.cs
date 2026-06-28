@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Numerics;
 using Robust.Shared.Maths;
 using Robust.Shared.Prototypes;
 using Robust.Shared.Utility;
@@ -64,5 +65,16 @@ namespace Robust.Shared.Map
         ///     Allows you to hide tiles from the tile spawn menu.
         /// </summary>
         bool EditorHidden => false;
+
+        /// <summary>
+        ///     Whether this tile should generate map-grid collision.
+        /// </summary>
+        bool HasCollision => true;
+
+        /// <summary>
+        ///     Optional tile-local vertices used for map-grid collision instead of a full square tile.
+        ///     Coordinates are in the 0..1 tile-local range.
+        /// </summary>
+        IReadOnlyList<Vector2>? CollisionVertices => null;
     }
 }

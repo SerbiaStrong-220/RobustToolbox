@@ -237,18 +237,18 @@ namespace Robust.Shared.Map
                 return false;
             }
 
+            shapeChanged = true;
+
             if (tileRef.IsEmpty)
             {
                 if (!tile.IsEmpty)
                 {
                     FilledTiles += 1;
-                    shapeChanged = true;
                 }
             }
             else if (tile.IsEmpty)
             {
                 FilledTiles -= 1;
-                shapeChanged = true;
             }
 
             DebugTools.Assert(FilledTiles >= 0);

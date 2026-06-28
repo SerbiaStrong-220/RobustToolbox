@@ -23,7 +23,9 @@ namespace Robust.Shared.GameObjects
     {
         [Dependency] private FixtureSystem _fixtures = default!;
         [Dependency] private SharedMapSystem _map = default!;
+        [Dependency] private SharedPhysicsSystem _physics = default!;
         [Dependency] private IConfigurationManager _cfg = default!;
+        [Dependency] private ITileDefinitionManager _tileDefinitionManager = default!;
 
         private bool _enabled;
         private float _fixtureEnlargement;
@@ -153,6 +155,62 @@ namespace Robust.Shared.GameObjects
                 newFixtures.Add((key, newFixture));
             }
 
+            Span<Vector2> collisionVertices = stackalloc Vector2[PhysicsConstants.MaxPolygonVertices];
+
+            for (ushort y = 0; y < chunk.ChunkSize; y++)
+            {
+                for (ushort x = 0; x < chunk.ChunkSize; x++)
+                {
+                    var tile = chunk.GetTile(x, y);
+
+                    if (tile.IsEmpty)
+                        continue;
+
+                    var tileDef = _tileDefinitionManager[tile.TypeId];
+
+                    if (!tileDef.HasCollision || tileDef.CollisionVertices is not { } tileVertices)
+                        continue;
+
+                    var count = tileVertices.Count;
+
+                    if (count is < 3 or > PhysicsConstants.MaxPolygonVertices)
+                    {
+                        Log.Error($"Tile definition {tileDef.ID} has invalid collision vertex count {count}");
+                        continue;
+                    }
+
+                    var tileOrigin = origin + new Vector2i(x, y);
+                    var tileOriginVector = new Vector2(tileOrigin.X, tileOrigin.Y);
+
+                    for (var i = 0; i < count; i++)
+                    {
+                        collisionVertices[i] = tileOriginVector + tileVertices[i];
+                    }
+
+                    var poly = new PolygonShape();
+
+                    if (!poly.Set(collisionVertices, count))
+                    {
+                        Log.Error($"Tile definition {tileDef.ID} has invalid collision vertices");
+                        continue;
+                    }
+
+#pragma warning disable CS0618
+                    var newFixture = new Fixture(
+                        poly,
+                        MapGridHelpers.CollisionGroup,
+                        MapGridHelpers.CollisionGroup,
+                        true)
+                    {
+                        Owner = uid
+                    };
+#pragma warning restore CS0618
+
+                    var key = string.Create(CultureInfo.InvariantCulture, $"grid_tile-{tileOrigin.X}-{tileOrigin.Y}");
+                    newFixtures.Add((key, newFixture));
+                }
+            }
+
             // Check if we even need to issue an eventbus event
             var updated = false;
 
@@ -195,6 +253,11 @@ namespace Robust.Shared.GameObjects
                 updated = true;
             }
 
+            if ((newFixtures.Count > 0 || manager.FixtureCount > 0) && !body.CanCollide)
+            {
+                _physics.SetCanCollide(uid, true, manager: manager, body: body);
+            }
+
             // Anything remaining is a new fixture (or at least, may have not serialized onto the chunk yet).
             foreach (var (id, fixture) in newFixtures.Span)
             {
@@ -207,6 +270,13 @@ namespace Robust.Shared.GameObjects
                     poly.EqualsApprox((PolygonShape) fixture.Shape))
                 {
                     continue;
+                }
+
+                if (existingFixture != null)
+                {
+                    chunk.Fixtures.Remove(id);
+                    _fixtures.DestroyFixture(uid, id, existingFixture, false, body: body, manager: manager, xform: xform);
+                    chunk.Fixtures.Add(id);
                 }
 
                 _fixtures.CreateFixture(uid, id, fixture, false, manager, body, xform);
