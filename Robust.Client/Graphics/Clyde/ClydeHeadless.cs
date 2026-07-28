@@ -238,6 +238,9 @@ namespace Robust.Client.Graphics.Clyde
             // Nada.
         }
 
+        // SS220-relative-mouse-mode
+        public bool SetRelativeMouseMode(bool enabled) => false;
+
         public void Screenshot(ScreenshotType type, CopyPixelsDelegate<Rgb24> callback, UIBox2i? subRegion = null)
         {
             // Immediately call callback with an empty buffer.

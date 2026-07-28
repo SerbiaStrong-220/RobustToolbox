@@ -68,6 +68,9 @@ namespace Robust.Client.Graphics.Clyde
 
             // IME
             void TextInputSetRect(WindowReg reg, UIBox2i rect, int cursor);
+            // SS220-relative-mouse-mode
+            bool SetRelativeMouseMode(WindowReg reg, bool enabled);
+
             void TextInputStart(WindowReg reg);
             void TextInputStop(WindowReg reg);
             string GetDescription();

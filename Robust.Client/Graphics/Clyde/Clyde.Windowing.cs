@@ -455,6 +455,16 @@ namespace Robust.Client.Graphics.Clyde
             _windowing!.CursorSet(_mainWindow!, cursor);
         }
 
+        // SS220-relative-mouse-mode-begin
+        public bool SetRelativeMouseMode(bool enabled)
+        {
+            if (_windowing == null || _mainWindow == null)
+                return false;
+
+            return _windowing.SetRelativeMouseMode(_mainWindow, enabled);
+        }
+        // SS220-relative-mouse-mode-end
+
         private void SetWindowSize(WindowReg reg, Vector2i size)
         {
             DebugTools.AssertNotNull(_windowing);

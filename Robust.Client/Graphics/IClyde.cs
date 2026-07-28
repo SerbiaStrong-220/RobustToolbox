@@ -122,6 +122,22 @@ namespace Robust.Client.Graphics
         /// <exception cref="ObjectDisposedException">Thrown if the cursor object passed has been disposed.</exception>
         void SetCursor(ICursor? cursor);
 
+        // SS220-relative-mouse-mode-begin
+        /// <summary>
+        ///     Puts the primary window into relative mouse mode, where the cursor is hidden and locked in
+        ///     place while mouse motion keeps being reported as deltas.
+        /// </summary>
+        /// <remarks>
+        ///     Intended for things like radial menus and camera dragging, which want unbounded aiming
+        ///     rather than a cursor that stops at the edge of the screen. While enabled the reported
+        ///     cursor position stops being meaningful, so anything relying on it should be turned off for
+        ///     the duration. The platform restores the cursor to where it was when the mode is released.
+        /// </remarks>
+        /// <param name="enabled">Whether relative mouse mode should be on.</param>
+        /// <returns>False if the platform refused, in which case nothing changed.</returns>
+        bool SetRelativeMouseMode(bool enabled);
+        // SS220-relative-mouse-mode-end
+
         /// <summary>
         ///     Make a screenshot of the game, next render frame.
         /// </summary>

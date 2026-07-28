@@ -616,6 +616,22 @@ internal partial class Clyde
             SDL.SDL_SetTextInputArea(cmdTextInput.Window, ref rect, cmdTextInput.Cursor);
         }
 
+        // SS220-relative-mouse-mode-begin
+        public bool SetRelativeMouseMode(WindowReg reg, bool enabled)
+        {
+            // Sent as a command like every other window operation: SDL wants these on the thread that
+            // owns the window. Success is reported optimistically because of that - the call itself
+            // happens later, and platforms that do not support the mode simply leave it off.
+            SendCmd(new CmdSetRelativeMouseMode { Window = WinPtr(reg), Enabled = enabled });
+            return true;
+        }
+
+        private static void WinThreadSetRelativeMouseMode(CmdSetRelativeMouseMode cmd)
+        {
+            SDL.SDL_SetWindowRelativeMouseMode(cmd.Window, cmd.Enabled);
+        }
+        // SS220-relative-mouse-mode-end
+
         public void TextInputStart(WindowReg reg)
         {
             SendCmd(new CmdTextInputStart { Window = WinPtr(reg) });
