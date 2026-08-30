@@ -699,10 +699,13 @@ public abstract partial class SharedPhysicsSystem
         }
     }
 
-    private void BuildManifolds(Contact[] contacts, int count, ContactStatus[] status, FixedArray4<Vector2>[] worldPoints, bool[] wake)
+    private void BuildManifolds(Contact[] contacts, int count, ContactStatus[] status, FixedArray4<Vector2>[] worldPoints, bool[] wake) // SS220-HacksLua-patches-merge
     {
         if (count == 0)
             return;
+
+        using var _mz = _prof.Group("Generate Manifolds");
+        // var wake = ArrayPool<bool>.Shared.Rent(count); // SS220-HacksLua-patches-merge
 
         _parallel.ProcessNow(new ManifoldsJob()
         {

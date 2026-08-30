@@ -48,6 +48,8 @@ namespace Robust.Server.GameObjects
 
         private ISawmill _netEntSawmill = default!;
         private PvsSystem _pvs = default!;
+        private Histogram? _tickUpdateHistogram;
+        private Histogram.Child? _entityNetHistogram;
 
         public override void Initialize()
         {
@@ -167,7 +169,9 @@ namespace Robust.Server.GameObjects
         /// <inheritdoc />
         public override void TickUpdate(float frameTime, bool noPredictions, Histogram? histogram)
         {
-            using (histogram?.WithLabels("EntityNet").NewTimer())
+            UpdateTickHistogram(histogram);
+
+            using (_entityNetHistogram?.NewTimer())
             {
                 while (_queue.Count != 0 && _queue.Peek().SourceTick <= _gameTiming.CurTick)
                 {
@@ -179,6 +183,15 @@ namespace Robust.Server.GameObjects
 
             EntitiesCount.Set(Entities.Count);
             EntityMsgQueueSize.Set(_queue.Count);
+        }
+
+        private void UpdateTickHistogram(Histogram? histogram)
+        {
+            if (ReferenceEquals(_tickUpdateHistogram, histogram))
+                return;
+
+            _tickUpdateHistogram = histogram;
+            _entityNetHistogram = histogram?.WithLabels("EntityNet");
         }
 
         public uint GetLastMessageSequence(ICommonSession? session)
