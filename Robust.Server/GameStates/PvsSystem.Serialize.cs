@@ -10,6 +10,11 @@ using Robust.Shared.Utility;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+#if DEBUG
+// ss220 add debug player session using start
+using Robust.Shared.SS220.Player;
+// ss220 add debug player session using end
+#endif
 
 namespace Robust.Server.GameStates;
 
@@ -69,7 +74,13 @@ internal sealed partial class PvsSystem
 
             // PVS benchmarks use dummy sessions.
             // ReSharper disable once ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
-            if (data.Session.Channel is not DummyChannel)
+            if (data.Session.Channel is not DummyChannel
+// ss220 add debug player session start
+#if DEBUG
+                && data.Session.Channel is not DebugNetChannel
+#endif
+                )
+// ss220 add debug player session end
             {
                 data.StateStream = RobustMemoryManager.GetMemoryStream();
                 _serializer.SerializeDirect(data.StateStream, data.State);

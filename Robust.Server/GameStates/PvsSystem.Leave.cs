@@ -7,6 +7,11 @@ using Robust.Shared.Enums;
 using Robust.Shared.Log;
 using Robust.Shared.Network.Messages;
 using Robust.Shared.Player;
+#if DEBUG
+// ss220 add debug player session using start
+using Robust.Shared.SS220.Player;
+// ss220 add debug player session using end
+#endif
 using Robust.Shared.Threading;
 using Robust.Shared.Utility;
 
@@ -65,7 +70,13 @@ internal sealed partial class PvsSystem
 
         // PVS benchmarks use dummy sessions.
         // ReSharper disable once ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
-        if (session.Session.Status == SessionStatus.InGame && session.Channel != null)
+        if (session.Session.Status == SessionStatus.InGame && session.Channel != null
+// ss220 add debug player session start
+#if DEBUG
+            && session.Channel is not DebugNetChannel
+#endif
+            )
+// ss220 add debug player session end
             _netMan.ServerSendMessage(pvsMessage, session.Channel);
 
         session.LeftView.Clear();

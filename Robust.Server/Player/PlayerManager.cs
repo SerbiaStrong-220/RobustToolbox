@@ -15,6 +15,12 @@ using Robust.Shared.Network;
 using Robust.Shared.Network.Messages;
 using Robust.Shared.Player;
 using Robust.Shared.Reflection;
+#if DEBUG
+// ss220 add debug player session using start
+using Robust.Server.SS220.Player;
+using Robust.Shared.SS220.Player;
+// ss220 add debug player session using end
+#endif
 using Robust.Shared.Timing;
 using Robust.Shared.Utility;
 
@@ -24,6 +30,11 @@ namespace Robust.Server.Player
     ///     This class will manage connected player sessions.
     /// </summary>
     internal sealed partial class PlayerManager : SharedPlayerManager, IPlayerManager
+// ss220 add debug player session interface start
+#if DEBUG
+        , IDebugPlayerManager
+#endif
+// ss220 add debug player session interface end
     {
         private static readonly Gauge PlayerCountMetric = Metrics
             .CreateGauge("robust_player_count", "Number of players on the server.");
@@ -178,6 +189,31 @@ namespace Robust.Server.Player
             session = actor.PlayerSession;
             return true;
         }
+
+// ss220 add debug player session start
+#if DEBUG
+        public ICommonSession AddDebugSession(string name)
+        {
+            var user = new NetUserId(Guid.NewGuid());
+            var session = CreateAndAddSession(user, name);
+            ((ICommonSessionInternal) session).SetChannel(new DebugNetChannel(_network, user, name));
+            session.ConnectedTime = DateTime.UtcNow;
+
+            PlayerCountMetric.Set(PlayerCount); // im not sure about this, but... why not...
+            SetStatus(session, SessionStatus.Connected);
+            return session;
+        }
+
+        public bool RemoveDebugSession(ICommonSession session)
+        {
+            if (session.Channel is not DebugNetChannel)
+                return false;
+
+            EndSession(session.UserId);
+            return true;
+        }
+#endif
+// ss220 add debug player session end
 
         internal ICommonSession AddDummySession(NetUserId user, string name)
         {
