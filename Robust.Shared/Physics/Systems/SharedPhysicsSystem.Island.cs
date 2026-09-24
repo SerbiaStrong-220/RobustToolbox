@@ -5,6 +5,8 @@ using System.Numerics;
 using System.Threading.Tasks;
 using Microsoft.Extensions.ObjectPool;
 using Robust.Shared.GameObjects;
+using Robust.Shared.Maths;
+using Robust.Shared.Physics.Collision;
 using Robust.Shared.Physics.Components;
 using Robust.Shared.Physics.Dynamics;
 using Robust.Shared.Physics.Dynamics.Contacts;
@@ -192,6 +194,7 @@ public abstract partial class SharedPhysicsSystem
     private float _maxRotationPerTick;
     private int _tickRate;
     private bool _sleepAllowed;
+    private bool _debugSIMD;
     protected float AngularToleranceSqr;
     protected float LinearToleranceSqr;
     protected float TimeToSleep;
@@ -214,6 +217,7 @@ public abstract partial class SharedPhysicsSystem
         Subs.CVar(_cfg, CVars.MaxLinVelocity, SetMaxLinearVelocity, true);
         Subs.CVar(_cfg, CVars.MaxAngVelocity, SetMaxAngularVelocity, true);
         Subs.CVar(_cfg, CVars.SleepAllowed, SetSleepAllowed, true);
+        Subs.CVar(_cfg, CVars.DebugSIMDEnabled, SetDebugSIMD, true);
         Subs.CVar(_cfg, CVars.AngularSleepTolerance, SetAngularToleranceSqr, true);
         Subs.CVar(_cfg, CVars.LinearSleepTolerance, SetLinearToleranceSqr, true);
         Subs.CVar(_cfg, CVars.TimeToSleep, SetTimeToSleep, true);
@@ -246,6 +250,7 @@ public abstract partial class SharedPhysicsSystem
     }
 
     private void SetSleepAllowed(bool value) => _sleepAllowed = value;
+    private void SetDebugSIMD(bool value) => _debugSIMD = value;
     private void SetAngularToleranceSqr(float value) => AngularToleranceSqr = value;
     private void SetLinearToleranceSqr(float value) => LinearToleranceSqr = value;
     private void SetTimeToSleep(float value) => TimeToSleep = value;
@@ -777,13 +782,78 @@ public abstract partial class SharedPhysicsSystem
         }
 
         var contactCount = island.Contacts.Count;
-        var velocityConstraints = ArrayPool<ContactVelocityConstraint>.Shared.Rent(contactCount);
-        var positionConstraints = ArrayPool<ContactPositionConstraint>.Shared.Rent(contactCount);
+        // SS220-Start: Now constraints is SoA
+        var velocityConstraints = new ContactVelocityConstraintSoA
+        {
+            ContactIndex = ArrayPool<int>.Shared.Rent(contactCount),
+            IndexA = ArrayPool<int>.Shared.Rent(contactCount),
+            IndexB = ArrayPool<int>.Shared.Rent(contactCount),
+            Normal = ArrayPool<Vector2>.Shared.Rent(contactCount),
+            NormalMass = ArrayPool<Vector4>.Shared.Rent(contactCount),
+            K = ArrayPool<Vector4>.Shared.Rent(contactCount),
+            InvMassA = ArrayPool<float>.Shared.Rent(contactCount),
+            InvMassB = ArrayPool<float>.Shared.Rent(contactCount),
+            InvIA = ArrayPool<float>.Shared.Rent(contactCount),
+            InvIB = ArrayPool<float>.Shared.Rent(contactCount),
+            Friction = ArrayPool<float>.Shared.Rent(contactCount),
+            Restitution = ArrayPool<float>.Shared.Rent(contactCount),
+            TangentSpeed = ArrayPool<float>.Shared.Rent(contactCount),
+            TangentX = ArrayPool<float>.Shared.Rent(contactCount),
+            TangentY = ArrayPool<float>.Shared.Rent(contactCount),
+            PointCount = ArrayPool<int>.Shared.Rent(contactCount),
+            PointRelativeVelocityA = ArrayPool<FixedArray2<Vector2>>.Shared.Rent(contactCount),
+            PointRelativeVelocityB = ArrayPool<FixedArray2<Vector2>>.Shared.Rent(contactCount),
+            PointNormalImpulse = ArrayPool<FixedArray2<float>>.Shared.Rent(contactCount),
+            PointTangentImpulse = ArrayPool<FixedArray2<float>>.Shared.Rent(contactCount),
+            PointNormalMass = ArrayPool<FixedArray2<float>>.Shared.Rent(contactCount),
+            PointTangentMass = ArrayPool<FixedArray2<float>>.Shared.Rent(contactCount),
+            PointVelocityBias = ArrayPool<FixedArray2<float>>.Shared.Rent(contactCount)
+        };
+        var positionConstraints = new ContactPositionConstraintSoA
+        {
+            IndexA = ArrayPool<int>.Shared.Rent(contactCount),
+            IndexB = ArrayPool<int>.Shared.Rent(contactCount),
+            LocalPoints = ArrayPool<FixedArray2<Vector2>>.Shared.Rent(contactCount),
+            LocalNormal = ArrayPool<Vector2>.Shared.Rent(contactCount),
+            LocalPoint = ArrayPool<Vector2>.Shared.Rent(contactCount),
+            InvMassA = ArrayPool<float>.Shared.Rent(contactCount),
+            InvMassB = ArrayPool<float>.Shared.Rent(contactCount),
+            LocalCenterA = ArrayPool<Vector2>.Shared.Rent(contactCount),
+            LocalCenterB = ArrayPool<Vector2>.Shared.Rent(contactCount),
+            InvIA = ArrayPool<float>.Shared.Rent(contactCount),
+            InvIB = ArrayPool<float>.Shared.Rent(contactCount),
+            Type = ArrayPool<ManifoldType>.Shared.Rent(contactCount),
+            RadiusA = ArrayPool<float>.Shared.Rent(contactCount),
+            RadiusB = ArrayPool<float>.Shared.Rent(contactCount),
+            PointCount = ArrayPool<int>.Shared.Rent(contactCount)
+        };
+        // SS220-End
 
         // Pass the data into the solver
         ResetSolver(in data, in island, velocityConstraints, positionConstraints);
 
         InitializeVelocityConstraints(in data, in island, velocityConstraints, positionConstraints, positions, angles, linearVelocities, angularVelocities);
+
+        // SS220-Start: Split contacts with 2 points and 1 point for SIMD
+        var singlePointContacts = ArrayPool<int>.Shared.Rent(contactCount);
+        var multiPointContacts  = ArrayPool<int>.Shared.Rent(contactCount);
+
+        int singlePointCount = 0;
+        int multiPointCount = 0;
+
+        for (int i = 0; i < contactCount; i++)
+        {
+            if (velocityConstraints.PointCount[i] == 1)
+            {
+                singlePointContacts[singlePointCount++] = i;
+            }
+            else
+            {
+                DebugTools.Assert(velocityConstraints.PointCount[i] == 2);
+                multiPointContacts[multiPointCount++] = i;
+            }
+        }
+        // SS220-End
 
         if (data.WarmStarting)
         {
@@ -823,7 +893,12 @@ public abstract partial class SharedPhysicsSystem
                     island.BrokenJoints.Add((island.Joints[j].Original, error));
             }
 
-            SolveVelocityConstraints(in island, options, velocityConstraints, linearVelocities, angularVelocities);
+            // SS220-Start: SIMD optimization
+            if (NumericsHelpers.Vector256Enabled && _debugSIMD)
+                SolveAllVelocityConstraintsSIMD(in island, velocityConstraints, linearVelocities, angularVelocities, singlePointContacts, singlePointCount, multiPointContacts, multiPointCount);
+            else
+                SolveVelocityConstraints(in island, options, velocityConstraints, linearVelocities, angularVelocities);
+            // SS220-End
         }
 
         // Store for warm starting.
@@ -862,7 +937,13 @@ public abstract partial class SharedPhysicsSystem
 
         for (var i = 0; i < data.PositionIterations; i++)
         {
-            var contactsOkay = SolvePositionConstraints(in data, in island, options, positionConstraints, positions, angles);
+            bool contactsOkay;
+
+            if (NumericsHelpers.Vector256Enabled && _debugSIMD)
+                contactsOkay = SolveAllPositionConstraintsSIMD(in island, positionConstraints, positions, angles, in data, singlePointContacts, singlePointCount, multiPointContacts, multiPointCount);
+            else
+                contactsOkay = SolvePositionConstraints(in data, in island, options, positionConstraints, positions, angles);
+
             var jointsOkay = true;
 
             for (var j = 0; j < island.Joints.Count; ++j)
@@ -1015,8 +1096,50 @@ public abstract partial class SharedPhysicsSystem
         // Cleanup
         ArrayPool<Vector2>.Shared.Return(positions);
         ArrayPool<float>.Shared.Return(angles);
-        ArrayPool<ContactVelocityConstraint>.Shared.Return(velocityConstraints);
-        ArrayPool<ContactPositionConstraint>.Shared.Return(positionConstraints);
+        // SS220-Start: Now constraints is SoA
+        // ArrayPool<ContactVelocityConstraint>.Shared.Return(velocityConstraints);
+        ArrayPool<int>.Shared.Return(velocityConstraints.ContactIndex);
+        ArrayPool<int>.Shared.Return(velocityConstraints.IndexA);
+        ArrayPool<int>.Shared.Return(velocityConstraints.IndexB);
+        ArrayPool<Vector2>.Shared.Return(velocityConstraints.Normal);
+        ArrayPool<Vector4>.Shared.Return(velocityConstraints.NormalMass);
+        ArrayPool<Vector4>.Shared.Return(velocityConstraints.K);
+        ArrayPool<float>.Shared.Return(velocityConstraints.InvMassA);
+        ArrayPool<float>.Shared.Return(velocityConstraints.InvMassB);
+        ArrayPool<float>.Shared.Return(velocityConstraints.InvIA);
+        ArrayPool<float>.Shared.Return(velocityConstraints.InvIB);
+        ArrayPool<float>.Shared.Return(velocityConstraints.Friction);
+        ArrayPool<float>.Shared.Return(velocityConstraints.Restitution);
+        ArrayPool<float>.Shared.Return(velocityConstraints.TangentSpeed);
+        ArrayPool<float>.Shared.Return(velocityConstraints.TangentX);
+        ArrayPool<float>.Shared.Return(velocityConstraints.TangentY);
+        ArrayPool<int>.Shared.Return(velocityConstraints.PointCount);
+        ArrayPool<FixedArray2<Vector2>>.Shared.Return(velocityConstraints.PointRelativeVelocityA);
+        ArrayPool<FixedArray2<Vector2>>.Shared.Return(velocityConstraints.PointRelativeVelocityB);
+        ArrayPool<FixedArray2<float>>.Shared.Return(velocityConstraints.PointNormalImpulse);
+        ArrayPool<FixedArray2<float>>.Shared.Return(velocityConstraints.PointTangentImpulse);
+        ArrayPool<FixedArray2<float>>.Shared.Return(velocityConstraints.PointNormalMass);
+        ArrayPool<FixedArray2<float>>.Shared.Return(velocityConstraints.PointTangentMass);
+        ArrayPool<FixedArray2<float>>.Shared.Return(velocityConstraints.PointVelocityBias);
+        // ArrayPool<ContactPositionConstraint>.Shared.Return(positionConstraints);
+        ArrayPool<int>.Shared.Return(positionConstraints.IndexA);
+        ArrayPool<int>.Shared.Return(positionConstraints.IndexB);
+        ArrayPool<FixedArray2<Vector2>>.Shared.Return(positionConstraints.LocalPoints);
+        ArrayPool<Vector2>.Shared.Return(positionConstraints.LocalNormal);
+        ArrayPool<Vector2>.Shared.Return(positionConstraints.LocalPoint);
+        ArrayPool<float>.Shared.Return(positionConstraints.InvMassA);
+        ArrayPool<float>.Shared.Return(positionConstraints.InvMassB);
+        ArrayPool<Vector2>.Shared.Return(positionConstraints.LocalCenterA);
+        ArrayPool<Vector2>.Shared.Return(positionConstraints.LocalCenterB);
+        ArrayPool<float>.Shared.Return(positionConstraints.InvIA);
+        ArrayPool<float>.Shared.Return(positionConstraints.InvIB);
+        ArrayPool<ManifoldType>.Shared.Return(positionConstraints.Type);
+        ArrayPool<float>.Shared.Return(positionConstraints.RadiusA);
+        ArrayPool<float>.Shared.Return(positionConstraints.RadiusB);
+        ArrayPool<int>.Shared.Return(positionConstraints.PointCount);
+        // SS220-End
+        ArrayPool<int>.Shared.Return(singlePointContacts);
+        ArrayPool<int>.Shared.Return(multiPointContacts);
     }
 
     private void FinalisePositions(int start, int end, int offset, List<Entity<PhysicsComponent, TransformComponent>> bodies, Vector2[] positions, float[] angles, Vector2[] solvedPositions, float[] solvedAngles)

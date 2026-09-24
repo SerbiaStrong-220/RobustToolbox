@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using JetBrains.Annotations;
 using Robust.Server.Physics;
 using Robust.Shared;
@@ -29,10 +30,24 @@ namespace Robust.Server.GameObjects
             MetricsEnabled = _configurationManager.GetCVar(CVars.MetricsEnabled);
         }
 
+        private long _solveTickCount;
+        private long _solveAccumulatedTicks;
+        private const int ProfileInterval = 100; // log every 100 frames
+
         /// <inheritdoc />
         public override void Update(float frameTime)
         {
+            var sw = Stopwatch.StartNew();
             SimulateWorld(frameTime, false);
+            sw.Stop();
+            _solveAccumulatedTicks += sw.ElapsedTicks;
+            if (++_solveTickCount >= ProfileInterval)
+            {
+                double avgMs = (_solveAccumulatedTicks / (double)Stopwatch.Frequency) * 1000.0 / _solveTickCount;
+                Log.Info($"Solve average: {avgMs:F4} ms over {_solveTickCount} frames");
+                _solveTickCount = 0;
+                _solveAccumulatedTicks = 0;
+            }
         }
     }
 }
