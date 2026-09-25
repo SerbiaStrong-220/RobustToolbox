@@ -171,6 +171,12 @@ namespace Robust.Server.ViewVariables
         /// </summary>
         protected object? MakeNullValueNetSafe(Type type)
         {
+            // ss220 add convertable nullable types start
+            // ViewVariablesTraitMembers converts the submitted text back to the declared type.
+            if (Nullable.GetUnderlyingType(type) != null)
+                return "null";
+            // ss220 add convertable nullable types end
+
             if (typeof(IPrototype).IsAssignableFrom(type))
             {
                 var protoMan = IoCManager.Resolve<IPrototypeManager>();
