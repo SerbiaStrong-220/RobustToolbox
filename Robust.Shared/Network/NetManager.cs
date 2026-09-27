@@ -16,6 +16,11 @@ using Robust.Shared.Network.Transfer;
 using Robust.Shared.Player;
 using Robust.Shared.Profiling;
 using Robust.Shared.Serialization;
+#if DEBUG
+// ss220 add debug player session using start
+using Robust.Shared.SS220.Player;
+// ss220 add debug player session using end
+#endif
 using Robust.Shared.Timing;
 using Robust.Shared.Utility;
 using Robust.Shared.ViewVariables;
@@ -930,6 +935,12 @@ namespace Robust.Shared.Network
         /// <inheritdoc />
         public void DisconnectChannel(INetChannel channel, string reason)
         {
+// ss220 add debug player session start
+#if DEBUG
+            if (channel is DebugNetChannel)
+                return;
+#endif
+// ss220 add debug player session end
             channel.Disconnect(reason);
         }
 
@@ -1165,6 +1176,12 @@ namespace Robust.Shared.Network
                 return;
 
             DebugTools.Assert(IsServer);
+// ss220 add debug player session start
+#if DEBUG
+            if (recipient is DebugNetChannel)
+                return;
+#endif
+// ss220 add debug player session end
             if (!(recipient is NetChannel channel))
                 throw new ArgumentException($"Not of type {typeof(NetChannel).FullName}", nameof(recipient));
 

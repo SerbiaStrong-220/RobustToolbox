@@ -4,6 +4,11 @@ using Prometheus;
 using Robust.Shared.Log;
 using Robust.Shared.Network.Messages;
 using Robust.Shared.Player;
+#if DEBUG
+// ss220 add debug player session using start
+using Robust.Shared.SS220.Player;
+// ss220 add debug player session using end
+#endif
 using Robust.Shared.Utility;
 
 namespace Robust.Server.GameStates;
@@ -47,7 +52,13 @@ internal sealed partial class PvsSystem
 
         try
         {
-            if (data.Session.Channel is { } channel && channel is not DummyChannel)
+            if (data.Session.Channel is { } channel && channel is not DummyChannel
+// ss220 add debug player session start
+#if DEBUG
+                && channel is not DebugNetChannel
+#endif
+                )
+// ss220 add debug player session end
             {
                 if (!channel.IsConnected)
                     return;
