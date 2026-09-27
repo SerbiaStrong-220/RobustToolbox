@@ -14,6 +14,8 @@ This is a release candidate version and may differ from the final version.
 
 * Added `IServerNetManager.InitialHandshakeCompleted` event which raises after NetChannel set up and serialization manager finishes its handshake, right before `Connected` event.
 * Added `IServerNetManager.ReSetupChannel(INetChannel, NetUserData, LoginType)` hack for overwriting NetChannel data by content. Highly not recommended for use outside handshake context. Use it only if you know what you are doing.
+* Added `IDebugPlayerManager, DebugNetChannel` for debug session, that could be spawn in Content.Client
+* Added Convertable Nullable field to change in VV
 
 ### Other
 
@@ -31,3 +33,4 @@ Available upstream versions: v272.0.0, v277.0.0
 Available upstream versions: v272.0.0
 
 *Changes weren't documented*
+
