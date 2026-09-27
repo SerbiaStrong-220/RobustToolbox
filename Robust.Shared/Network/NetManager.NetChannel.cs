@@ -24,7 +24,7 @@ namespace Robust.Shared.Network
             public INetManager NetPeer => _manager;
 
             [ViewVariables] public string UserName => UserData.UserName;
-            [ViewVariables] public LoginType AuthType { get; set; } // SS220
+            [ViewVariables] public LoginType AuthType { get; }
             [ViewVariables] public TimeSpan RemoteTimeOffset => TimeSpan.FromSeconds(_connection.RemoteTimeOffset);
             [ViewVariables] public TimeSpan RemoteTime => _manager._timing.RealTime + RemoteTimeOffset;
 
@@ -45,7 +45,7 @@ namespace Robust.Shared.Network
             public NetConnection Connection => _connection;
 
             [ViewVariables] public NetUserId UserId => UserData.UserId;
-            [ViewVariables] public NetUserData UserData { get; set; } // SS220
+            [ViewVariables] public NetUserData UserData { get; }
 
             public bool IsHandshakeComplete { get; set; }
 
