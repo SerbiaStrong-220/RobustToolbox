@@ -1,13 +1,21 @@
 using System;
 using System.Collections.Generic;
+using System.IO; // ss220 add convertable nullable types
 using System.Linq;
 using System.Reflection;
+using Robust.Shared.GameObjects; // ss220 add convertable nullable types
 using Robust.Shared.IoC;
 using Robust.Shared.Log;
 using Robust.Shared.Prototypes;
 using Robust.Shared.Reflection;
+// ss220 add convertable nullable types start
+using Robust.Shared.Serialization.Manager;
+using Robust.Shared.Serialization.Markdown;
+using Robust.Shared.Serialization.Markdown.Value;
+// ss220 add convertable nullable types end
 using Robust.Shared.Utility;
 using Robust.Shared.ViewVariables;
+using YamlDotNet.RepresentationModel; // ss220 add convertable nullable types
 using static Robust.Shared.ViewVariables.ViewVariablesBlobMembers;
 
 namespace Robust.Server.ViewVariables.Traits
@@ -183,7 +191,10 @@ namespace Robust.Server.ViewVariables.Traits
                 case PropertyInfo propertyInfo:
                     try
                     {
-                        propertyInfo.GetSetMethod(true)!.Invoke(Session.Object, new[] {value});
+                        // ss220 add convertable nullable types start
+                        var converted = ConvertNullableValue(propertyInfo.PropertyType, value);
+                        propertyInfo.GetSetMethod(true)!.Invoke(Session.Object, new[] {converted});
+                        // ss220 add convertable nullable types end
                         return true;
                     }
                     catch (Exception e)
@@ -196,7 +207,10 @@ namespace Robust.Server.ViewVariables.Traits
                 case FieldInfo field:
                     try
                     {
-                        field.SetValue(Session.Object, value);
+                        // ss220 add convertable nullable types start
+                        var converted = ConvertNullableValue(field.FieldType, value);
+                        field.SetValue(Session.Object, converted);
+                        // ss220 add convertable nullable types end
                         Session.ObjectChangeDelegate?.Invoke(Session.Object);
 
                         return true;
@@ -212,5 +226,41 @@ namespace Robust.Server.ViewVariables.Traits
                     throw new InvalidOperationException();
             }
         }
+
+        // ss220 add convertable nullable types start
+        private object? ConvertNullableValue(Type type, object value)
+        {
+            // Only convert text sent for a Nullable<T> field or property.
+            if (value is not string text || Nullable.GetUnderlyingType(type) == null)
+                return value;
+
+            using var reader = new StringReader(text);
+            var yaml = new YamlStream();
+            yaml.Load(reader);
+            if (yaml.Documents.Count != 1)
+                throw new ArgumentException("Expected one YAML value for a nullable VV member.");
+
+            var node = yaml.Documents[0].RootNode.ToDataNode();
+            if (node.IsNull)
+                return null;
+
+            if (node is ValueDataNode dataNode)
+            {
+                if (type == typeof(NetEntity?))
+                    return NetEntity.Parse(dataNode.Value);
+
+                if (type == typeof(EntityUid?))
+                {
+                    if (!IoCManager.Resolve<IEntityManager>().TryGetEntity(NetEntity.Parse(dataNode.Value), out var entity))
+                        throw new ArgumentException("Unknown network entity id.");
+
+                    return entity;
+                }
+            }
+
+            // Convert other values to the declared type using the existing serializer.
+            return IoCManager.Resolve<ISerializationManager>().Read(type, node);
+        }
+        // ss220 add convertable nullable types end
     }
 }
