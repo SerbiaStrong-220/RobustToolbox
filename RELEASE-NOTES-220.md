@@ -13,7 +13,6 @@ Available upstream versions: v277.0.0
 * Added `IDebugPlayerManager, DebugNetChannel` for debug session, that could be spawn in Content side
 * Added Convertable Nullable field to change in VV
 
-
 ### Fixes
 
 * Removed modification of extended handshake due to instability behavior
