@@ -4,6 +4,20 @@ Changes to RobustToolbox made by the SS220 team.
 
 <!-- If last documented version if release candidate and you're willing to create another release candidate or even release itself you should be modifying the last block instead of creating a new one  -->
 
+## c1.2.0
+
+Available upstream versions: v277.0.0
+
+### New features
+
+* Added `IDebugPlayerManager, DebugNetChannel` for debug session, that could be spawn in Content side
+* Added Convertable Nullable field to change in VV
+
+
+### Fixes
+
+* Removed modification of extended handshake due to instability behavior
+
 ## c1.1.0-rc1
 
 Available upstream versions: v277.0.0
@@ -14,8 +28,6 @@ This is a release candidate version and may differ from the final version.
 
 * Added `IServerNetManager.InitialHandshakeCompleted` event which raises after NetChannel set up and serialization manager finishes its handshake, right before `Connected` event.
 * Added `IServerNetManager.ReSetupChannel(INetChannel, NetUserData, LoginType)` hack for overwriting NetChannel data by content. Highly not recommended for use outside handshake context. Use it only if you know what you are doing.
-* Added `IDebugPlayerManager, DebugNetChannel` for debug session, that could be spawn in Content side
-* Added Convertable Nullable field to change in VV
 
 ### Other
 
