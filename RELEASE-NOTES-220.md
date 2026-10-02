@@ -4,6 +4,19 @@ Changes to RobustToolbox made by the SS220 team.
 
 <!-- If last documented version if release candidate and you're willing to create another release candidate or even release itself you should be modifying the last block instead of creating a new one  -->
 
+## c1.2.0
+
+Available upstream versions: v277.0.0
+
+### New features
+
+* Added `IDebugPlayerManager, DebugNetChannel` for debug session, that could be spawn in Content side
+* Added Convertable Nullable field to change in VV
+
+### Fixes
+
+* Removed modification of extended handshake due to instability behavior
+
 ## c1.1.0-rc1
 
 Available upstream versions: v277.0.0
@@ -31,3 +44,4 @@ Available upstream versions: v272.0.0, v277.0.0
 Available upstream versions: v272.0.0
 
 *Changes weren't documented*
+
