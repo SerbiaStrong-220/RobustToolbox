@@ -58,6 +58,7 @@ public sealed partial class GamePrototypeLoadManager : SharedPrototypeLoadManage
         {
             PrototypeData = string.Join("\n\n", LoadedPrototypes)
         };
+        _sawmill.Info($"Sending {LoadedPrototypes.Count} admin prototypes size of {sizeof(char) * msg.PrototypeData.Length} to {channel.UserName}!"); // SS220-add-log-for-sending-admin-data
         channel.SendMessage(msg);
     }
 }
